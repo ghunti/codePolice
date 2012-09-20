@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#First parameter passed to script contains the file where the commit message
+#is stored
+commitMessage=$(<"$1")
+regex='^[A-Z]{6,6}-[0-9][0-9]*.*'
+if [[ ! $commitMessage =~ $regex ]]; then
+    printf "Commit message should be in the format $regex\n"
+    exit 1
+fi
+exit 0
