@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+
+function checkCodeSniffer() {
+    local status=$1
+    local fileName=$2
+    local prvVersion=
+    
+    if [ "$status" = "D" ]; then
+        return 0
+    fi
+
+    if [ "$status" = "M" ]; then
+        prvVersion=$(tempfile) || exit 1;
+        git show HEAD:"$fileName" > $prvVersion
+    fi
+    
+    if [ "$status" = "R" ]; then
+        local mvFrom=$(printf "$fileName" | sed -r 's/(.*)\s->\s.*/\1/')
+        fileName=$(printf "$fileName" | sed -r 's/.*\s->\s(.*)/\1/')
+
+        prvVersion=$(tempfile) || exit 1;
+        git show HEAD:"$mvFrom" > $prvVersion
+    fi
+
+    if [ -n "$prvVersion" ]; then
+        #Previous version exist. Check if we introduced new errors
+        local csPrvFile=$(tempfile)
+        phpcs --standard=Zend $prvVersion | sed '1,2 d' > $csPrvFile
+        local csCurFile=$(tempfile)
+        phpcs --standard=Zend "$fileName" | sed '1,2 d' > $csCurFile
+
+        diff $csPrvFile $csCurFile &> /dev/null
+        if [ $? = 0 ]; then
+            #No new errors were introduced
+            return 0
+        else
+            #Errors were introduced
+            errorLog=$errorLog"$lineSeparator""FILE:"$fileName"\n$lineSeparator"
+            local result=$(diff "$csPrvFile" "$csCurFile" -y)
+            errorLog="$errorLog""$result\n\n\n"
+        fi
+
+    else
+        #Previous version doesn't exist, just check if new version has errors
+        phpcs --standard=Zend "$fileName" &> /dev/null
+        if [ $? = 0 ]; then
+            #No new errors were introduced
+            return 0
+        else
+            #Errors were introduced
+            errorLog=$errorLog"$lineSeparator""FILE:"$fileName"\n$lineSeparator"
+            local result=$(phpcs --standard=Zend "$fileName" | sed '1,2 d')
+            errorLog="$errorLog""$result\n\n\n"
+        fi
+    fi
+}
+
+lineSeparator=$(printf "%$(tput cols)s\n"|tr ' ' '=')
+errorLog=
+#-r so that read doesn't remove the backslash from line
+while read -r line
+do
+    status=$(printf "$line" | cut -f1)
+    fileName=$(printf "$line" | sed -re 's/^[A-Z]\s*(.*)/\1/' -e 's/^"(.*)"$/\1/')
+    checkCodeSniffer "$status" "$fileName"
+
+done <<< "`git diff --staged --name-status`"
+    
+if [ -n "$errorLog" ]; then
+    printf "$errorLog"
+    exit 1;
+fi
+exit 0;
