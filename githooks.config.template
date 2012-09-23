@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#Pre-commit hook
+CONF_pre_commit_active=true
+
+#Code sniffer
+CONF_pre_commit_cs_active=true
+#The standard to be used on with the phpcs
+CONF_pre_commit_cs_standard=ZEND
+
+
+
+#Commit message hook
+CONF_commit_msg_active=true
+#The regex to use on the commit message
+CONF_commit_msg_regex='^[A-Z]{6,6}-[0-9][0-9]*.*'

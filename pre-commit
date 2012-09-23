@@ -1,9 +1,40 @@
 #!/bin/bash
-#
 
-function checkCodeSniffer() {
+#Include utils script
+source "$(dirname $(readlink -f $0))/utils.sh"
+
+if ! $CONF_pre_commit_active ; then
+    #Hook not active
+    exit 0
+fi
+
+
+function main() {
+	codeSniffer
+}
+
+#Check for coding standard errors introduced on this commit
+function codeSniffer() {
+    if ! $CONF_pre_commit_cs_active ; then
+        #Code sniffing not active
+        exit 0
+    fi
+
+    #-r so that read doesn't remove the backslash from line
+	while read -r line
+	do
+	    status=$(printf "$line" | cut -f1)
+	    fileName=$(printf "$line" | sed -re 's/^[A-Z]\s*(.*)/\1/' -e 's/^"(.*)"$/\1/')
+	    sniffFile "$status" "$fileName"
+
+	done <<< "`git diff --staged --name-status`"
+}
+
+#Check for coding standards errors introduced on this commit on a specific file
+function sniffFile() {
     local status=$1
     local fileName=$2
+    local standard=$CONF_pre_commit_cs_standard
     local prvVersion=
     
     if [ "$status" = "D" ]; then
@@ -26,9 +57,9 @@ function checkCodeSniffer() {
     if [ -n "$prvVersion" ]; then
         #Previous version exist. Check if we introduced new errors
         local csPrvFile=$(tempfile)
-        phpcs --standard=Zend $prvVersion | sed '1,2 d' > $csPrvFile
+        phpcs --standard=$standard $prvVersion | sed '1,2 d' > $csPrvFile
         local csCurFile=$(tempfile)
-        phpcs --standard=Zend "$fileName" | sed '1,2 d' > $csCurFile
+        phpcs --standard=$standard "$fileName" | sed '1,2 d' > $csCurFile
 
         diff $csPrvFile $csCurFile &> /dev/null
         if [ $? = 0 ]; then
@@ -43,32 +74,27 @@ function checkCodeSniffer() {
 
     else
         #Previous version doesn't exist, just check if new version has errors
-        phpcs --standard=Zend "$fileName" &> /dev/null
+        phpcs --standard=$standard "$fileName" &> /dev/null
         if [ $? = 0 ]; then
             #No new errors were introduced
             return 0
         else
             #Errors were introduced
             errorLog=$errorLog"$lineSeparator""FILE:"$fileName"\n$lineSeparator"
-            local result=$(phpcs --standard=Zend "$fileName" | sed '1,2 d')
+            local result=$(phpcs --standard=$standard "$fileName" | sed '1,2 d')
             errorLog="$errorLog""$result\n\n\n"
         fi
     fi
 }
 
+
 lineSeparator=$(printf "%$(tput cols)s\n"|tr ' ' '=')
 errorLog=
-#-r so that read doesn't remove the backslash from line
-while read -r line
-do
-    status=$(printf "$line" | cut -f1)
-    fileName=$(printf "$line" | sed -re 's/^[A-Z]\s*(.*)/\1/' -e 's/^"(.*)"$/\1/')
-    checkCodeSniffer "$status" "$fileName"
 
-done <<< "`git diff --staged --name-status`"
-    
+main
+
 if [ -n "$errorLog" ]; then
     printf "$errorLog"
-    exit 1;
+    exit 1
 fi
-exit 0;
+exit 0
