@@ -10,7 +10,8 @@ fi
 
 
 function main() {
-	codeSniffer
+    codeSniffer
+    whiteSpace
 }
 
 #Check for coding standard errors introduced on this commit
@@ -84,6 +85,19 @@ function sniffFile() {
             local result=$(phpcs --standard=$standard "$fileName" | sed '1,2 d')
             errorLog="$errorLog""$result\n\n\n"
         fi
+    fi
+}
+
+function whiteSpace() {
+    if ! $CONF_pre_commit_ws_active ; then
+        #White space verification not active
+        exit 0
+    fi
+    
+    git diff --staged --check &> /dev/null
+    if [ $? != 0 ]; then
+        errorLog="$errorLog"$lineSeparator"Whitespace errors:\n"$lineSeparator
+        errorLog="$errorLog"$(git diff --staged --check)
     fi
 }
 

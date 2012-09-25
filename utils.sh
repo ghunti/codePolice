@@ -15,3 +15,5 @@ function includeConfig() {
 
 #Auto-execute this code when the script is included on other scripts
 includeConfig
+#Use HEAD if available, otherwise use the empty tree object
+HEAD=$(git rev-parse --verify HEAD 2> /dev/null || echo 4b825dc642cb6eb9a060e54bf8d69288fbee4904)
