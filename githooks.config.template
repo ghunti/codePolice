@@ -9,7 +9,8 @@ CONF_pre_commit_cs_active=true
 CONF_pre_commit_cs_standard=ZEND
 #Whitespacing
 CONF_pre_commit_ws_active=true
-
+#Check for debug code
+CONF_pre_commit_debug_active=true
 
 #Commit message hook
 CONF_commit_msg_active=true

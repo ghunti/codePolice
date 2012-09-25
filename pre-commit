@@ -12,6 +12,7 @@ fi
 function main() {
     codeSniffer
     whiteSpace
+    debugCode
 }
 
 #Check for coding standard errors introduced on this commit
@@ -98,6 +99,24 @@ function whiteSpace() {
     if [ $? != 0 ]; then
         errorLog="$errorLog"$lineSeparator"Whitespace errors:\n"$lineSeparator
         errorLog="$errorLog"$(git diff --staged --check)
+    fi
+}
+
+#Check if we are about to commit debug code
+function debugCode()
+{
+    if ! $CONF_pre_commit_debug_active ; then
+        #Check for debug code is not active
+        exit 0
+    fi
+
+    OLDIFS=$IFS
+    IFS='\n'
+    local result=$(git diff --staged | egrep -n "^\+.*(var_dump|die|print_r|exit|console\.log)")
+    IFS=$OLDIFS
+    if [ -n "$result" ]; then
+        errorLog="$errorLog"$lineSeparator"Debug code is about to be commited:\n"$lineSeparator
+        errorLog="$errorLog"$result"\n"
     fi
 }
 
