@@ -22,13 +22,13 @@ function codeSniffer() {
     fi
 
     #-r so that read doesn't remove the backslash from line
-	while read -r line
-	do
-	    status=$(printf "$line" | cut -f1)
-	    fileName=$(printf "$line" | sed -re 's/^[A-Z]\s*(.*)/\1/' -e 's/^"(.*)"$/\1/')
-	    sniffFile "$status" "$fileName"
+    while read -r line
+    do
+        status=$(printf "$line" | cut -f1)
+        fileName=$(printf "$line" | sed -re 's/^[A-Z]\s*(.*)/\1/' -e 's/^"(.*)"$/\1/')
+        sniffFile "$status" "$fileName"
 
-	done <<< "`git diff --staged --name-status`"
+    done <<< "`git diff --staged --name-status`"
 }
 
 #Check for coding standards errors introduced on this commit on a specific file
