@@ -13,6 +13,7 @@ function main() {
     codeSniffer
     whiteSpace
     debugCode
+    internationalization
 }
 
 #Check for coding standard errors introduced on this commit
@@ -110,16 +111,27 @@ function debugCode()
         exit 0
     fi
 
-    OLDIFS=$IFS
-    IFS='\n'
-    local result=$(git diff --staged | egrep -n "^\+.*(var_dump|die|print_r|exit|console\.log)")
-    IFS=$OLDIFS
-    if [ -n "$result" ]; then
+    checkForRegexCodeOnStage $CONF_pre_commit_debug_regex
+    if [ -n "$lastCommandResult" ]; then
         errorLog="$errorLog"$lineSeparator"Debug code is about to be commited:\n"$lineSeparator
-        errorLog="$errorLog"$result"\n"
+        errorLog="$errorLog"$lastCommandResult"\n"
     fi
 }
 
+#Check if we are about to commit internationalization sentences
+function internationalization()
+{
+    if ! $CONF_pre_commit_internationalization_active ; then
+        #Check for internationalization code is not active
+        exit 0
+    fi
+
+    checkForRegexCodeOnStage $CONF_pre_commit_internationalization_regex
+    if [ -n "$lastCommandResult" ]; then
+        errorLog="$errorLog"$lineSeparator"Internacionalization code has been commited:\n"$lineSeparator
+        errorLog="$errorLog"$lastCommandResult"\n"
+    fi
+}
 
 lineSeparator=$(printf "%$(tput cols)s\n"|tr ' ' '=')
 errorLog=

@@ -12,6 +12,17 @@ function includeConfig() {
 	fi
 }
 
+#Check if a regex exists on the code that's about
+#to be commited (staged)
+function checkForRegexCodeOnStage()
+{
+    local regex=$1
+    OLDIFS=$IFS
+    IFS='\n'
+    lastCommandResult=$(git diff --staged | egrep -ni "$regex")
+    IFS=$OLDIFS
+}
+
 
 #Auto-execute this code when the script is included on other scripts
 includeConfig
