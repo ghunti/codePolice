@@ -60,13 +60,18 @@ function sniffFile() {
         git show HEAD:"$mvFrom" > $prvVersion
     fi
 
+    #Store the result of phpcs execution (only the changed lines)
+    local phpcsResult=$(tempfile) || exit 1;
+    phpcs --standard=$standard "$fileName" | sed '1,5 d' | sed -n -e :a -e '1,4!{P;N;D;};N;ba' > $phpcsResult
+
     if [ -n "$prvVersion" ]; then
         #Previous version exist. Check if we introduced new errors
 
         #An array with the number of the modified lines
         local changedLines=($(getChangedLines $prvVersion $fileName))
         #An array with the number of the current error lines
-        local currentErrorLines=($(phpcs --standard=$standard "$fileName" | egrep '([[:digit:]])+[[:blank:]]\|.*$' | sed -r -e 's/^([[:blank:]])*([[:digit:]]+)*.*/\2/' | sort -n | uniq | tr '\n' ' '))
+        local currentErrorLines=($(cat "$phpcsResult" | egrep '([[:digit:]])+[[:blank:]]\|.*$' | 
+            sed -r -e 's/^([[:blank:]])*([[:digit:]]+)*.*/\2/' | sort -n | uniq | tr '\n' ' '))
 
         local errorLines=()
         for line in "${changedLines[@]}"
@@ -82,26 +87,26 @@ function sniffFile() {
             return 0
         else
             #Errors were introduced
-            errorLog=$errorLog"$lineSeparator""FILE: "$fileName"\n$lineSeparator"
+            errorLog=$errorLog"\n$lineSeparator""FILE: "$fileName"\n$lineSeparator"
             for line in "${errorLines[@]}"
             do
                 #Append all the new error lines to the error log
-                local result=$(phpcs --standard=$standard "$fileName" | egrep "^[[:space:]]$line[[:space:]].*$")
-                errorLog="$errorLog""LINE: $result\n"
+                local result=$(cat "$phpcsResult" | egrep "^[[:space:]]$line[[:space:]].*$")
+                errorLog="$errorLog""$result\n"
             done
         fi
 
     else
         #Previous version doesn't exist, just check if new version has errors
-        phpcs --standard=$standard "$fileName" &> /dev/null
-        if [ $? = 0 ]; then
+        local nErrors=$(cat "$phpcsResult" | wc -l)
+        if [ $nErrors = 0 ]; then
             #No new errors were introduced
             return 0
         else
             #Errors were introduced
-            errorLog=$errorLog"$lineSeparator""FILE: "$fileName"\n$lineSeparator"
-            local result=$(phpcs --standard=$standard "$fileName" | sed '1,2 d')
-            errorLog="$errorLog""$result\n\n\n"
+            errorLog=$errorLog"\n$lineSeparator""FILE: "$fileName"\n$lineSeparator"
+            local result=$(cat "$phpcsResult")
+            errorLog="$errorLog""$result\n"
         fi
     fi
 }
