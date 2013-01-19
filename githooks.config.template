@@ -11,7 +11,7 @@ CONF_pre_commit_cs_standard=ZEND
 CONF_pre_commit_ws_active=true
 #Check for debug code
 CONF_pre_commit_debug_active=true
-CONF_pre_commit_debug_regex="^\+.*(var_dump|die|print_r|exit|console\.log|Logger::getInstance|Bob_Log::debug)"
+CONF_pre_commit_debug_regex="^\+.*(var_dump|die|print_r|exit|console\.log)"
 #Check for internationalization code
 CONF_pre_commit_internationalization_active=true
 CONF_pre_commit_internationalization_regex="I18n::"
