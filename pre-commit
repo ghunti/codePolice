@@ -39,16 +39,19 @@ function sniffFile() {
     local fileName=$2
     local standard=$CONF_pre_commit_cs_standard
     local prvVersion=
-    
+
+    #File was deleted
     if [ "$status" = "D" ]; then
         return 0
     fi
 
+    #File was modified
     if [ "$status" = "M" ]; then
         prvVersion=$(tempfile) || exit 1;
         git show HEAD:"$fileName" > $prvVersion
     fi
-    
+
+    #File was moved
     if [ "$status" = "R" ]; then
         local mvFrom=$(printf "$fileName" | sed -r 's/(.*)\s->\s.*/\1/')
         fileName=$(printf "$fileName" | sed -r 's/.*\s->\s(.*)/\1/')
@@ -59,20 +62,33 @@ function sniffFile() {
 
     if [ -n "$prvVersion" ]; then
         #Previous version exist. Check if we introduced new errors
-        local csPrvFile=$(tempfile)
-        phpcs --standard=$standard $prvVersion | sed '1,2 d' > $csPrvFile
-        local csCurFile=$(tempfile)
-        phpcs --standard=$standard "$fileName" | sed '1,2 d' > $csCurFile
 
-        diff $csPrvFile $csCurFile &> /dev/null
-        if [ $? = 0 ]; then
+        #An array with the number of the modified lines
+        local changedLines=($(getChangedLines $prvVersion $fileName))
+        #An array with the number of the current error lines
+        local currentErrorLines=($(phpcs --standard=$standard "$fileName" | egrep '([[:digit:]])+[[:blank:]]\|.*$' | sed -r -e 's/^([[:blank:]])*([[:digit:]]+)*.*/\2/' | sort -n | uniq | tr '\n' ' '))
+
+        local errorLines=()
+        for line in "${changedLines[@]}"
+        do
+            isInArray $line "${currentErrorLines[@]}"
+            if [ $? = 0 ]; then
+                errorLines=("${errorLines[@]}" $line)
+            fi
+        done
+
+        if  [ ${#errorLines[@]} = 0 ]; then
             #No new errors were introduced
             return 0
         else
             #Errors were introduced
-            errorLog=$errorLog"$lineSeparator""FILE:"$fileName"\n$lineSeparator"
-            local result=$(diff "$csPrvFile" "$csCurFile" -y)
-            errorLog="$errorLog""$result\n\n\n"
+            errorLog=$errorLog"$lineSeparator""FILE: "$fileName"\n$lineSeparator"
+            for line in "${errorLines[@]}"
+            do
+                #Append all the new error lines to the error log
+                local result=$(phpcs --standard=$standard "$fileName" | egrep "^[[:space:]]$line[[:space:]].*$")
+                errorLog="$errorLog""LINE: $result\n"
+            done
         fi
 
     else
@@ -83,7 +99,7 @@ function sniffFile() {
             return 0
         else
             #Errors were introduced
-            errorLog=$errorLog"$lineSeparator""FILE:"$fileName"\n$lineSeparator"
+            errorLog=$errorLog"$lineSeparator""FILE: "$fileName"\n$lineSeparator"
             local result=$(phpcs --standard=$standard "$fileName" | sed '1,2 d')
             errorLog="$errorLog""$result\n\n\n"
         fi
@@ -95,7 +111,7 @@ function whiteSpace() {
         #White space verification not active
         exit 0
     fi
-    
+
     git diff --staged --check &> /dev/null
     if [ $? != 0 ]; then
         errorLog="$errorLog"$lineSeparator"Whitespace errors:\n"$lineSeparator
