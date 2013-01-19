@@ -1,1 +1,4 @@
 githooks.config
+.buildpath
+.project
+.settings/
