@@ -1,22 +1,32 @@
 #!/bin/bash
 
-#Pre-commit hook
+###################################################
+# Pre-commit hook                                 #
+###################################################
 CONF_pre_commit_active=true
 
-#Code sniffer
+####Code sniffer
 CONF_pre_commit_cs_active=true
-#The standard to be used on with the phpcs
-CONF_pre_commit_cs_standard=ZEND
-#Whitespacing
+#Any extra argument to be passed to phpcs
+#The result is expected to be a "full" report, if the arguments produce anything else, the result is unpredictable
+CONF_pre_commit_cs_arguments="--standard=PSR2"
+
+####Whitespacing
 CONF_pre_commit_ws_active=true
-#Check for debug code
+
+####Check for debug code
 CONF_pre_commit_debug_active=true
 CONF_pre_commit_debug_regex="^\+.*(var_dump|die|print_r|exit|console\.log)"
-#Check for internationalization code
+
+####Check for internationalization code
 CONF_pre_commit_internationalization_active=true
 CONF_pre_commit_internationalization_regex="I18n::"
 
-#Commit message hook
+
+###################################################
+# Commit message hook                             #
+###################################################
 CONF_commit_msg_active=true
+
 #The regex to use on the commit message
 CONF_commit_msg_regex='^[A-Z]{6,6}-[0-9][0-9]*.*'

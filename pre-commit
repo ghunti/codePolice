@@ -37,7 +37,6 @@ function codeSniffer() {
 function sniffFile() {
     local status=$1
     local fileName=$2
-    local standard=$CONF_pre_commit_cs_standard
     local prvVersion=
 
     #File was deleted
@@ -62,7 +61,7 @@ function sniffFile() {
 
     #Store the result of phpcs execution (only the changed lines)
     local phpcsResult=$(tempfile) || exit 1;
-    phpcs --standard=$standard "$fileName" | sed '1,5 d' | sed -n -e :a -e '1,4!{P;N;D;};N;ba' > $phpcsResult
+    phpcs $CONF_pre_commit_cs_arguments "$fileName" | sed '1,5 d' | sed -n -e :a -e '1,4!{P;N;D;};N;ba' > $phpcsResult
 
     if [ -n "$prvVersion" ]; then
         #Previous version exist. Check if we introduced new errors
