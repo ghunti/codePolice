@@ -20,7 +20,7 @@ function main() {
 function codeSniffer() {
     if ! $CONF_pre_commit_cs_active ; then
         #Code sniffing not active
-        exit 0
+        return 0
     fi
 
     #-r so that read doesn't remove the backslash from line
@@ -113,7 +113,7 @@ function sniffFile() {
 function whiteSpace() {
     if ! $CONF_pre_commit_ws_active ; then
         #White space verification not active
-        exit 0
+        return 0
     fi
 
     git diff --staged --check &> /dev/null
@@ -128,7 +128,7 @@ function debugCode()
 {
     if ! $CONF_pre_commit_debug_active ; then
         #Check for debug code is not active
-        exit 0
+        return 0
     fi
 
     checkForRegexCodeOnStage $CONF_pre_commit_debug_regex
@@ -143,7 +143,7 @@ function internationalization()
 {
     if ! $CONF_pre_commit_internationalization_active ; then
         #Check for internationalization code is not active
-        exit 0
+        return 0
     fi
 
     checkForRegexCodeOnStage $CONF_pre_commit_internationalization_regex
